@@ -38,7 +38,7 @@ void printList(node *head) {
 int main() {
   node *head = NULL;
   insertAtEnd(&head, 1);
-  insertAtEnd(&head, 2);
+  insertAtEnd(&head, 67);
   insertAtEnd(&head, 3);
   printList(head);
   return 0;
