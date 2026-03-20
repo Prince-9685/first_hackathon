@@ -1,7 +1,8 @@
 #include <stdio.h>
 
-int main(){
+int main() {
   printf("hello world");
   printf("\n");
   printf("jumanji: WELCOME TO THE JUNGLE!!");
+  return 0;
 }
