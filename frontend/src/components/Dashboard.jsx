@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { GoogleTrafficMap } from './GoogleTrafficMap';
 import { ThreeDCityView } from './ThreeDCityView';
 import { ControlPanel } from './ControlPanel';
@@ -19,10 +19,29 @@ export function Dashboard() {
   const [emergencyActive, setEmergencyActive] = useState(false);
   const [routeInfo, setRouteInfo] = useState(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
+  const [aiOptimized, setAiOptimized] = useState(true);
+  const [emergencyCorridor, setEmergencyCorridor] = useState([]);
 
-  const fetchRoute = async () => {
+  const displayNodes = useMemo(() => {
+    if (!aiOptimized) return nodes;
+    return nodes.map(n => {
+      const newDensity = Math.max(10, (n.density || n.traffic || 0) - 40);
+      // Keep realistic signal cycling from backend — don't override!
+      // Only nudge signals toward green if density dropped below thresholds
+      let signal = n.signal;
+      if (newDensity < 30 && n.signal === 'red') signal = 'green';
+
+      return {
+        ...n,
+        density: newDensity,
+        signal
+      };
+    });
+  }, [nodes, aiOptimized]);
+
+  const fetchRoute = async (start, end) => {
     setLoadingRoute(true);
-    const res = await fetch('http://localhost:5000/api/route');
+    const res = await fetch(`http://localhost:5000/api/route?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
     const data = await res.json();
     setRouteInfo(data);
     setLoadingRoute(false);
@@ -36,6 +55,7 @@ export function Dashboard() {
         const data = await res.json();
         setNodes(data.nodes);
         setEmergencyActive(data.emergencyActive);
+        setEmergencyCorridor(data.emergencyCorridor || []);
       } catch (e) {
         console.error("Backend not running");
       }
@@ -68,7 +88,7 @@ export function Dashboard() {
             <Activity className="text-black" size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">NEXUS <span className="text-white/50 font-normal">Command Center</span></h1>
+            <h1 className="text-xl font-bold tracking-tight">मार्गदर्शक AI <span className="text-white/50 font-normal">Command Center</span></h1>
             <p className="text-xs text-primary flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -88,9 +108,21 @@ export function Dashboard() {
 
       {/* Main Grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6">
-        
+
         {/* Left Column - Controls & Alerts */}
         <div className="flex flex-col gap-6 col-span-1">
+          {/* AI Optimization Mode */}
+          <div 
+            className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-4 ${aiOptimized ? 'bg-primary/10 border-primary/30' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+            onClick={() => setAiOptimized(!aiOptimized)}
+          >
+            <Activity className={aiOptimized ? "text-primary flex-shrink-0 mt-1" : "text-white/40 flex-shrink-0 mt-1"} size={20} />
+            <div>
+              <h3 className={`font-medium mb-1 ${aiOptimized ? "text-primary" : "text-white"}`}>AI Optimization Engine</h3>
+              <p className="text-xs text-white/50">{aiOptimized ? 'Active: Balancing network' : 'Offline: Raw simulated data'}</p>
+            </div>
+          </div>
+
           <ControlPanel emergencyActive={emergencyActive} />
           <SmartRoutePanel routeInfo={routeInfo} setRouteInfo={setRouteInfo} fetchRoute={fetchRoute} loading={loadingRoute} />
           <AlertsFeed alerts={alerts} />
@@ -102,7 +134,7 @@ export function Dashboard() {
             <Navigation size={18} className="text-secondary" /> Live City View
           </h2>
           <div className="flex-1 relative rounded-xl border border-black/10 shadow-2xl overflow-hidden bg-[#e5e7eb]">
-            <GoogleTrafficMap nodes={nodes} emergencyActive={emergencyActive} alerts={alerts} routeInfo={routeInfo} />
+            <GoogleTrafficMap nodes={displayNodes} emergencyActive={emergencyActive} emergencyCorridor={emergencyCorridor} alerts={alerts} routeInfo={routeInfo} />
           </div>
         </div>
 

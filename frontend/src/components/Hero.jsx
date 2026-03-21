@@ -51,10 +51,10 @@ export function Hero({ onEnter }) {
         </div>
 
         <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter">
-          SMART <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">NEXUS</span>
+          मार्गदर्शक <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">AI</span>
         </h1>
         
-        <p className="max-w-2xl text-lg md:text-xl text-white/60 mb-12 font-light leading-relaxed">
+        <p className="text-base sm:text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-8 animate-[fadeIn_1s_ease-out_1.5s_both]">
           The next generation of urban mobility. Adaptive signal arrays, predictive violation detection, and automated green corridors powered by real-time intelligence.
         </p>
 

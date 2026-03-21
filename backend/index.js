@@ -23,10 +23,12 @@ let recentChallans = [];
 
 const MOCK_NODES = [
   'Sindhi Camp', 'MI Road', 'Ajmeri Gate', 'Badi Choupad', 'SMS Hospital', 'Rambagh Circle', 'C-Scheme',
-  'MNIT Jaipur', 'World Trade Park', 'Rajasthan University', 'Jhalana'
+  'MNIT Jaipur', 'World Trade Park', 'Rajasthan University', 'Jhalana',
+  'Vidhyadhar Nagar', 'Mansarovar', 'Vaishali Nagar', 'Jhotwara', 'Raja Park', 'Tonk Road', 
+  'Pratap Nagar', 'Sanganer', 'Malviya Nagar', 'Civil Lines', 'JDA Circle'
 ];
 
-const EMERGENCY_CORRIDOR = ['Sindhi Camp', 'MI Road', 'SMS Hospital'];
+let EMERGENCY_CORRIDOR = ['Sindhi Camp', 'MI Road', 'SMS Hospital'];
 
 // Utility for random numbers
 const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -39,21 +41,41 @@ app.get('/api/traffic-data', (req, res) => {
   const nodes = MOCK_NODES.map(id => {
     // If emergency, completely override the traffic to minimum clear green
     if (emergencyCorridorActive && EMERGENCY_CORRIDOR.includes(id)) {
-      return { id, density: 10, signal: 'green' };
+      return { id, density: 10, signal: 'green', signalTimer: 30 };
     }
     
     // Adaptive logic from our engine
     const density = engine.predictTraffic(id);
-    const signal = engine.getSignalState(density);
+    const signal = engine.getSignalState(id, density);
 
-    return { id, density, signal };
+    // Compute remaining seconds in current phase for UI countdown
+    const cycleDuration = engine.signalCycleDurations[id] || 60;
+    const offset = engine.signalPhaseOffsets[id] || 0;
+    const now = Date.now() / 1000;
+    const phase = (now + offset) % cycleDuration;
+    let greenEnd, yellowEnd;
+    if (density > 70) { greenEnd = cycleDuration * 0.20; yellowEnd = cycleDuration * 0.30; }
+    else if (density > 45) { greenEnd = cycleDuration * 0.40; yellowEnd = cycleDuration * 0.50; }
+    else { greenEnd = cycleDuration * 0.60; yellowEnd = cycleDuration * 0.68; }
+    let signalTimer;
+    if (phase < greenEnd) signalTimer = Math.ceil(greenEnd - phase);
+    else if (phase < yellowEnd) signalTimer = Math.ceil(yellowEnd - phase);
+    else signalTimer = Math.ceil(cycleDuration - phase);
+
+    return { id, density, signal, signalTimer };
   });
 
-  res.json({ success: true, timestamp: new Date(), nodes, emergencyActive: emergencyCorridorActive });
+  res.json({ success: true, timestamp: new Date(), nodes, emergencyActive: emergencyCorridorActive, emergencyCorridor: EMERGENCY_CORRIDOR });
 });
 
 // 2. /api/emergency
 app.post('/api/emergency', (req, res) => {
+  const { start, end } = req.body;
+  if (start && end) {
+    const route = engine.calculateRoute(start, end, false);
+    EMERGENCY_CORRIDOR = route.path;
+  }
+
   emergencyCorridorActive = true;
   globalMetrics.avgResponseTimeMin = 3.5; // Simulate improvement
 
@@ -64,7 +86,7 @@ app.post('/api/emergency', (req, res) => {
 
   res.json({
     success: true,
-    message: "Emergency Green Corridor Activated (Sindhi Camp -> SMS Hospital)",
+    message: `Emergency Green Corridor Activated (${start || 'Sindhi Camp'} -> ${end || 'SMS Hospital'})`,
     corridor: EMERGENCY_CORRIDOR
   });
 });
@@ -117,19 +139,26 @@ app.post('/api/challan', (req, res) => {
 
 // 5. /api/route
 app.get('/api/route', (req, res) => {
-  // Mock smart route vs regular route
+  const { start, end } = req.query;
+  if (!start || !end) {
+    return res.status(400).json({ success: false, message: "Missing start or end query parameters" });
+  }
+
+  const standard = engine.calculateRoute(start, end, false);
+  const smart = engine.calculateRoute(start, end, true);
+
   res.json({
     success: true,
     standardRoute: {
-      path: ['Sindhi Camp', 'MI Road', 'Ajmeri Gate', 'Badi Choupad'],
-      etaMins: 45,
+      path: standard.path,
+      etaMins: standard.etaMins,
       congestionLevel: 'High'
     },
     smartRoute: {
-      path: ['Sindhi Camp', 'C-Scheme', 'Rambagh Circle', 'SMS Hospital', 'Badi Choupad'],
-      etaMins: 28,
+      path: smart.path,
+      etaMins: smart.etaMins,
       congestionLevel: 'Low',
-      note: "Avoided MI Road Congestion"
+      note: standard.path.join() === smart.path.join() ? "Direct path is highly optimal" : "AI intelligently bypassed heavily congested hotspots"
     }
   });
 });

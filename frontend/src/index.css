@@ -19,7 +19,17 @@
   }
   
   .glass-panel-heavy {
-    @apply bg-black/60 backdrop-blur-2xl border border-white/5 rounded-3xl;
+    @apply bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl;
+  }
+
+  .flow-line {
+    animation: flow 2s linear infinite;
+    stroke-dasharray: 10, 10;
+  }
+
+  @keyframes flow {
+    from { stroke-dashoffset: 20; }
+    to { stroke-dashoffset: 0; }
   }
 
   .text-glow {

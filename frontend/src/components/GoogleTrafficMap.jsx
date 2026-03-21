@@ -13,9 +13,6 @@ export function GoogleTrafficMap(props) {
   if (!apiKey) {
     return (
       <div className="w-full h-full relative">
-        <div className="absolute top-4 right-4 z-[2000] bg-warning/10 border border-warning/50 text-warning text-[10px] px-3 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 font-medium tracking-wide shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-          <ShieldAlert size={12} /> Google Maps API Key Missing. Active Failsafe: OSRM/Leaflet Overrides
-        </div>
         <TrafficMap {...props} />
       </div>
     );

@@ -21,7 +21,9 @@ const NODE_POSITIONS = {
   'Pratap Nagar': [26.8122, 75.8198],
   'Sanganer': [26.8208, 75.7951],
   'Malviya Nagar': [26.8530, 75.8047],
-  'Civil Lines': [26.9055, 75.7831]
+  'Malviya Nagar': [26.8530, 75.8047],
+  'Civil Lines': [26.9055, 75.7831],
+  'JDA Circle': [26.8635, 75.7910]
 };
 
 const MAIN_EDGES = [
@@ -50,7 +52,16 @@ const BACKGROUND_EDGES = [
   ['Vaishali Nagar', 'Mansarovar'],
   ['Rajasthan University', 'MNIT Jaipur'],
   ['MNIT Jaipur', 'Jhalana'],
-  ['Jhalana', 'World Trade Park']
+  ['Jhalana', 'World Trade Park'],
+  ['Jhotwara', 'Vaishali Nagar'],
+  ['Sindhi Camp', 'Civil Lines'],
+  ['Raja Park', 'Rajasthan University'],
+  ['World Trade Park', 'Malviya Nagar'],
+  ['Pratap Nagar', 'Mansarovar'],
+  ['Sanganer', 'Mansarovar'],
+  ['Badi Choupad', 'Raja Park'],
+  ['JDA Circle', 'Tonk Road'],
+  ['JDA Circle', 'Malviya Nagar']
 ];
 
 const edgeList = [...MAIN_EDGES, ...BACKGROUND_EDGES];

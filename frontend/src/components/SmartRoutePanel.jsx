@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Route, Map as MapIcon, ChevronRight } from 'lucide-react';
 
+const LOCATIONS = [
+  'Sindhi Camp', 'MI Road', 'Ajmeri Gate', 'Badi Choupad', 'SMS Hospital', 'Rambagh Circle', 'C-Scheme',
+  'MNIT Jaipur', 'World Trade Park', 'Rajasthan University', 'Jhalana',
+  'Vidhyadhar Nagar', 'Mansarovar', 'Vaishali Nagar', 'Jhotwara', 'Raja Park', 'Tonk Road', 
+  'Pratap Nagar', 'Sanganer', 'Malviya Nagar', 'Civil Lines', 'JDA Circle'
+].sort();
+
 export function SmartRoutePanel({ routeInfo, setRouteInfo, fetchRoute, loading }) {
+  const [start, setStart] = useState('Sindhi Camp');
+  const [end, setEnd] = useState('Jhalana');
+
   return (
     <div className="glass-panel p-5 mt-6 flex flex-col gap-4">
       <h3 className="text-sm font-semibold uppercase tracking-wider text-white/60 mb-2 flex items-center gap-2">
@@ -9,13 +19,23 @@ export function SmartRoutePanel({ routeInfo, setRouteInfo, fetchRoute, loading }
       </h3>
 
       {!routeInfo ? (
-        <button 
-          onClick={fetchRoute}
-          disabled={loading}
-          className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-secondary/50 rounded-xl transition-all text-sm font-medium flex items-center justify-center gap-2"
+        <>
+          <div className="flex flex-col gap-2">
+            <select value={start} onChange={e => setStart(e.target.value)} className="bg-[#0A0A0A] border border-white/10 text-white text-xs rounded-lg block w-full p-2.5 outline-none focus:border-primary">
+              {LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+            </select>
+            <select value={end} onChange={e => setEnd(e.target.value)} className="bg-[#0A0A0A] border border-white/10 text-white text-xs rounded-lg block w-full p-2.5 outline-none focus:border-primary">
+              {LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+            </select>
+          </div>
+          <button 
+            onClick={() => fetchRoute(start, end)}
+            disabled={loading}
+          className="w-full py-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-secondary/50 rounded-xl transition-all text-sm font-medium flex items-center justify-center gap-2"
         >
-          {loading ? 'Calculating Paths...' : 'Generate Optimal Route'}
+          {loading ? 'Calculating Paths...' : 'Generate Route'}
         </button>
+        </>
       ) : (
         <div className="flex flex-col gap-3 animate-[fadeIn_0.5s_ease-out]">
           {/* Standard Route */}

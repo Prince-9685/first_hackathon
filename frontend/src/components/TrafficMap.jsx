@@ -55,7 +55,8 @@ const NODE_POSITIONS = {
   'Pratap Nagar': [26.8122, 75.8198],
   'Sanganer': [26.8208, 75.7951],
   'Malviya Nagar': [26.8530, 75.8047],
-  'Civil Lines': [26.9055, 75.7831]
+  'Civil Lines': [26.9055, 75.7831],
+  'JDA Circle': [26.8635, 75.7910]
 };
 
 const MAIN_EDGES = [
@@ -84,10 +85,18 @@ const BACKGROUND_EDGES = [
   ['Vaishali Nagar', 'Mansarovar'],
   ['Rajasthan University', 'MNIT Jaipur'],
   ['MNIT Jaipur', 'Jhalana'],
-  ['Jhalana', 'World Trade Park']
+  ['Jhalana', 'World Trade Park'],
+  ['Jhotwara', 'Vaishali Nagar'],
+  ['Sindhi Camp', 'Civil Lines'],
+  ['Raja Park', 'Rajasthan University'],
+  ['World Trade Park', 'Malviya Nagar'],
+  ['Pratap Nagar', 'Mansarovar'],
+  ['Sanganer', 'Mansarovar'],
+  ['Badi Choupad', 'Raja Park'],
+  ['JDA Circle', 'Tonk Road'],
+  ['JDA Circle', 'Malviya Nagar']
 ];
 
-const EMERGENCY_CORRIDOR_PATH = ['Sindhi Camp', 'MI Road', 'SMS Hospital'];
 
 function getInterpolatedPoint(pathCoords, progress) {
   if (!pathCoords || pathCoords.length === 0) return [0, 0];
@@ -123,20 +132,32 @@ function getInterpolatedPoint(pathCoords, progress) {
   return pathCoords[pathCoords.length - 1];
 }
 
-export function TrafficMap({ nodes, emergencyActive, alerts, routeInfo }) {
+export function TrafficMap({ nodes, emergencyActive, emergencyCorridor = [], alerts, routeInfo }) {
   const [ambProgress, setAmbProgress] = useState(0);
 
   const getPathArray = (from, to) => {
-    if (routeDB[`${from}_${to}`]) return routeDB[`${from}_${to}`];
+    if (routeDB[`${from}_${to}`]) return [...routeDB[`${from}_${to}`]];
     if (routeDB[`${to}_${from}`]) return [...routeDB[`${to}_${from}`]].reverse();
     return [NODE_POSITIONS[from], NODE_POSITIONS[to]]; // strict fallback
+  };
+
+  const getEdgeTrafficAvg = (fromId, toId) => {
+    const n1 = nodes.find(n => n.id === fromId)?.density || 0;
+    const n2 = nodes.find(n => n.id === toId)?.density || 0;
+    return (n1 + n2) / 2;
+  };
+
+  const getEdgeColor = (avg) => {
+    if (avg < 45) return '#10b981'; // green-500
+    if (avg < 65) return '#eab308'; // yellow-500
+    return '#ef4444'; // red-500
   };
 
   const buildContinuousPath = (nodeIds) => {
     let full = [];
     for (let i = 0; i < nodeIds.length - 1; i++) {
-      const segment = getPathArray(nodeIds[i], nodeIds[i + 1]);
-      if (i > 0) segment.shift();
+      const segment = [...getPathArray(nodeIds[i], nodeIds[i + 1])];
+      if (i > 0 && segment.length > 0) segment.shift();
       full = full.concat(segment);
     }
     return full;
@@ -160,12 +181,14 @@ export function TrafficMap({ nodes, emergencyActive, alerts, routeInfo }) {
     return () => cancelAnimationFrame(rAF);
   }, [emergencyActive]);
 
+  const corridorPath = emergencyCorridor.length > 0 ? emergencyCorridor : ['Sindhi Camp', 'MI Road', 'SMS Hospital'];
+
   const fullAmbRoute = useMemo(() => {
-    return buildContinuousPath(EMERGENCY_CORRIDOR_PATH);
-  }, []); // Offline data is static
+    return buildContinuousPath(corridorPath);
+  }, [emergencyCorridor]); // Recalculate when corridor changes
 
   const ambPos = getInterpolatedPoint(fullAmbRoute, ambProgress);
-  const isEmergencyNode = (id) => emergencyActive && EMERGENCY_CORRIDOR_PATH.includes(id);
+  const isEmergencyNode = (id) => emergencyActive && corridorPath.includes(id);
 
   return (
     <div className="absolute inset-0 bg-[#e5e7eb]">
@@ -181,26 +204,33 @@ export function TrafficMap({ nodes, emergencyActive, alerts, routeInfo }) {
         />
 
         {/* Background Network (Huge Database Simulation) */}
-        {BACKGROUND_EDGES.map((edge, idx) => (
-          <Polyline 
-            key={`bg-${idx}`} 
-            positions={getPathArray(edge[0], edge[1])} 
-            color="#334155" 
-            weight={3} 
-            opacity={0.15} 
-          />
-        ))}
+        {BACKGROUND_EDGES.map((edge, idx) => {
+          const avg = getEdgeTrafficAvg(edge[0], edge[1]);
+          return (
+            <Polyline 
+              key={`bg-${idx}`} 
+              positions={getPathArray(edge[0], edge[1])} 
+              color={getEdgeColor(avg)} 
+              weight={3} 
+              opacity={0.3} 
+            />
+          );
+        })}
 
-        {/* Main Network Edges */}
-        {MAIN_EDGES.map((edge, idx) => (
-          <Polyline 
-            key={`main-${idx}`} 
-            positions={getPathArray(edge[0], edge[1])} 
-            color="#0f172a" 
-            weight={5} 
-            opacity={0.3} 
-          />
-        ))}
+        {/* Main Network Edges (With animated particles/flow via stroke-dasharray in CSS) */}
+        {MAIN_EDGES.map((edge, idx) => {
+          const avg = getEdgeTrafficAvg(edge[0], edge[1]);
+          return (
+            <Polyline 
+              key={`main-${idx}`} 
+              positions={getPathArray(edge[0], edge[1])} 
+              color={getEdgeColor(avg)} 
+              weight={5} 
+              opacity={0.7} 
+              className="flow-line"
+            />
+          );
+        })}
 
         {/* Smart Routes */}
         {routeInfo && (
@@ -246,17 +276,30 @@ export function TrafficMap({ nodes, emergencyActive, alerts, routeInfo }) {
           // Ensure it's inside NODE_POSITIONS
           if (!NODE_POSITIONS[node.id]) return null;
 
+          // Scale radius by intersection importance (density)
+          const density = node.density || 0;
+          const radius = density > 70 ? 10 : density > 45 ? 8 : 6;
+
           return (
             <CircleMarker 
               key={node.id}
               center={NODE_POSITIONS[node.id]} 
-              radius={7} 
-              pathOptions={{ fillColor: color, color: color, fillOpacity: 0.8, weight: 2 }}
+              radius={radius} 
+              pathOptions={{ fillColor: color, color: color, fillOpacity: 0.85, weight: 2 }}
             >
-              <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>
-                <strong className="text-black">{node.id}</strong><br/>
-                <span className="text-black/70">Density: {node.density}%</span><br/>
-                <span className="text-black/70">Signal: {node.signal.toUpperCase()}</span>
+              <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
+                <div style={{ minWidth: '120px' }}>
+                  <strong style={{ color: '#000', fontSize: '13px' }}>{node.id}</strong><br/>
+                  <span style={{ color: '#555' }}>Density: {density}%</span><br/>
+                  <span style={{ color: node.signal === 'red' ? '#EF4444' : node.signal === 'yellow' ? '#F59E0B' : '#22C55E', fontWeight: 'bold' }}>
+                    ● {node.signal.toUpperCase()}
+                  </span>
+                  {node.signalTimer && (
+                    <span style={{ color: '#888', marginLeft: '6px' }}>
+                      ({node.signalTimer}s)
+                    </span>
+                  )}
+                </div>
               </Tooltip>
             </CircleMarker>
           );

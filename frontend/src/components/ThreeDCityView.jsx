@@ -61,7 +61,7 @@ export function ThreeDCityView({ nodes }) {
     <div className="w-full h-full bg-[#030303] relative border-t border-white/5">
       <div className="absolute top-4 left-4 z-10">
         <div className="text-[10px] font-bold text-primary tracking-[0.2em] uppercase mb-1">
-          NEXUS 3D Digital Twin
+          मार्गदर्शक AI 3D Digital Twin
         </div>
         <div className="text-white/40 text-xs">
           Interactive WebGL Smart City Visualization
