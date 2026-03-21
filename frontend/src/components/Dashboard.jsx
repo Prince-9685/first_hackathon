@@ -21,6 +21,7 @@ export function Dashboard() {
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [aiOptimized, setAiOptimized] = useState(true);
   const [emergencyCorridor, setEmergencyCorridor] = useState([]);
+  const [viewMode, setViewMode] = useState('2D');
 
   const displayNodes = useMemo(() => {
     if (!aiOptimized) return nodes;
@@ -130,11 +131,31 @@ export function Dashboard() {
 
         {/* Center/Right - Map */}
         <div className="col-span-1 lg:col-span-3 glass-panel-heavy p-6 relative overflow-hidden flex flex-col">
-          <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-            <Navigation size={18} className="text-secondary" /> Live City View
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium flex items-center gap-2">
+              <Navigation size={18} className="text-secondary" /> Live City View
+            </h2>
+            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+              <button 
+                onClick={() => setViewMode('2D')} 
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${viewMode === '2D' ? 'bg-primary text-black shadow-[0_0_10px_rgba(0,255,163,0.3)]' : 'text-white/50 hover:text-white'}`}
+              >
+                2D MAP
+              </button>
+              <button 
+                onClick={() => setViewMode('3D')} 
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${viewMode === '3D' ? 'bg-primary text-black shadow-[0_0_10px_rgba(0,255,163,0.3)]' : 'text-white/50 hover:text-white'}`}
+              >
+                3D CITY
+              </button>
+            </div>
+          </div>
           <div className="flex-1 relative rounded-xl border border-black/10 shadow-2xl overflow-hidden bg-[#e5e7eb]">
-            <GoogleTrafficMap nodes={displayNodes} emergencyActive={emergencyActive} emergencyCorridor={emergencyCorridor} alerts={alerts} routeInfo={routeInfo} />
+            {viewMode === '2D' ? (
+              <GoogleTrafficMap nodes={displayNodes} emergencyActive={emergencyActive} emergencyCorridor={emergencyCorridor} alerts={alerts} routeInfo={routeInfo} />
+            ) : (
+              <ThreeDCityView nodes={displayNodes} />
+            )}
           </div>
         </div>
 
